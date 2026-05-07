@@ -1,4 +1,9 @@
-### AL ###
+This keeps the repository clean of junk.
+```text
+__pycache__/
+.DS_Store
+*.tmp
+.github/workflows/old_logic/### AL ###
 #Template for AL projects for Dynamics 365 Business Central
 #launch.json folder
 .vscode/
