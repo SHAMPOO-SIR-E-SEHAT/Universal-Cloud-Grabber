@@ -1,0 +1,109 @@
+name: Universal-Cloud-Grabber
+on:
+  push:
+    paths:
+      - 'GIMME-LINKS.txt'
+  workflow_dispatch:
+
+jobs:
+  grab:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg wget
+          pip install yt-dlp
+
+      - name: Smart Download
+        id: dl
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL=$(cat GIMME-LINKS.txt | xargs)
+          mkdir -p downloads
+          rm -rf downloads/*
+          
+          # 1. GitHub Repo (user/repo)
+          if [[ $URL =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$ ]]; then
+            gh release download --repo "$URL" --archive zip --output "downloads/repo-source.zip"
+          
+          # 2. Video Sites
+          elif [[ $URL == *"youtube.com"* ]] || [[ $URL == *"youtu.be"* ]] || [[ $URL == *"twitter.com"* ]] || [[ $URL == *"tiktok.com"* ]]; then
+            yt-dlp -f 'best' -o "downloads/%(title)s.%(ext)s" "$URL"
+          
+          # 3. Smart Web Scan or Direct File
+          else
+            echo "Scanning website for files..."
+            wget -r -l1 -nd -A "deb,exe,zip,msi,pkg,dmg,apk,rpm,gz,7z,rar" -P downloads/ "$URL" || curl -LJO "$URL" --output-dir downloads/
+          fi
+
+      - name: Split and Generate UI
+        id: process
+        run: |
+          # Split files larger than 90MB into .1, .2, .3
+          find downloads/ -type f -size +90M | while read FILE; do
+            split -b 90M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE."
+            rm "$FILE"
+          done
+          
+          # Build Table
+          TABLE_CONTENT=""
+          HAS_SPLIT="false"
+          MAIN_NAME=""
+
+          for f in $(ls downloads/ | sort -V); do
+            SIZE=$(du -sh "downloads/$f" | cut -f1)
+            ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$f'))")
+            RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/$ENC"
+            TABLE_CONTENT="${TABLE_CONTENT}| $f | $SIZE | [Download]($RAW_URL) |\n"
+            
+            if [[ "$f" == *.[1-9] ]]; then
+               HAS_SPLIT="true"
+               MAIN_NAME="${f%.*}"
+            fi
+          done
+
+          echo -e "TABLE_DATA<<EOF\n$TABLE_CONTENT\nEOF" >> $GITHUB_OUTPUT
+          echo "has_split=$HAS_SPLIT" >> $GITHUB_OUTPUT
+          echo "main_name=$MAIN_NAME" >> $GITHUB_OUTPUT
+
+      - name: Update README
+        run: |
+          TABLE="${{ steps.process.outputs.TABLE_DATA }}"
+          SPLIT="${{ steps.process.outputs.has_split }}"
+          FNAME="${{ steps.process.outputs.main_name }}"
+
+          # Inject Table
+          sed -i '/<!-- TABLE_START -->/,/<!-- TABLE_END -->/{ /<!-- TABLE_START -->/b; /<!-- TABLE_END -->/b; d; }' README.md
+          sed -i "/<!-- TABLE_START -->/a $TABLE" README.md
+          
+          # Generate Commands
+          if [ "$SPLIT" = "true" ]; then
+             L_CMD="cat \"downloads/$FNAME\".* > \"$FNAME\""
+             W_CMD="Get-Content \"downloads/$FNAME\".* -ReadCount 10mb -Encoding Byte | Set-Content \"$FNAME\" -Encoding Byte"
+          else
+             L_CMD="# No parts to join! Just download the file."
+             W_CMD="# No parts to join! Just download the file."
+          fi
+
+          # Inject Linux Command
+          sed -i '/<!-- LINUX_CMD_START -->/,/<!-- LINUX_CMD_END -->/{ /<!-- LINUX_CMD_START -->/b; /<!-- LINUX_CMD_END -->/b; d; }' README.md
+          sed -i "/<!-- LINUX_CMD_START -->/a \`\`\`bash\n$L_CMD\n\`\`\`" README.md
+          
+          # Inject Windows Command
+          sed -i '/<!-- WIN_CMD_START -->/,/<!-- WIN_CMD_END -->/{ /<!-- WIN_CMD_START -->/b; /<!-- WIN_CMD_END -->/b; d; }' README.md
+          sed -i "/<!-- WIN_CMD_START -->/a \`\`\`powershell\n$W_CMD\n\`\`\`" README.md
+
+      - name: Push to Repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Files Updated"
+          git push --force
