@@ -1,4 +1,28 @@
-🌌 Universal-Cloud-Grabber ✨
+# 🌌 Universal-Cloud-Grabber ✨
+
+Paste any link (Video, GitHub, or Website) into `GIMME-LINKS.txt` and commit!
+
+### 📦 Current Downloads
+| File Name | Size | Link |
+| :--- | :--- | :--- |
+<!-- TABLE_START -->
+<!-- TABLE_END -->
+
+---
+
+### 🛠️ Join Commands
+If a file was split into parts (.1, .2), use these:
+
+#### 🐧 Linux / 🍎 Mac / 🤖 Android (Termux)
+<!-- LINUX_CMD_START -->
+<!-- LINUX_CMD_END -->
+
+#### 🪟 Windows (PowerShell)
+<!-- WIN_CMD_START -->
+<!-- WIN_CMD_END -->
+
+---
+*Built with ❤️ using GitHub Actions*🌌 Universal-Cloud-Grabber ✨
 
 Paste any link into GIMME-LINKS.txt and I will fetch it!
 📦 Current Downloads
