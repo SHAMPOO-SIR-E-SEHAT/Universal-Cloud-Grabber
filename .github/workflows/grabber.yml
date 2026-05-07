@@ -17,9 +17,8 @@ jobs:
       - name: Setup Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg wget python3-pip
-          pip install yt-dlp beautifulsoup4 requests
-          # We'll use bs4 for more complex scraping later, but wget is primary now
+          sudo apt-get install -y ffmpeg wget
+          pip install yt-dlp
 
       - name: Smart Download
         id: dl
@@ -33,38 +32,16 @@ jobs:
           if [ -z "$URL" ]; then
             echo "Empty link file. Clearing..."
           elif [[ $URL =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$ ]]; then
-            echo "Downloading GitHub release..."
             gh release download --repo "$URL" --archive zip --output "downloads/repo-source.zip"
           elif [[ $URL == *"youtube.com"* ]] || [[ $URL == *"youtu.be"* ]] || [[ $URL == *"twitter.com"* ]] || [[ $URL == *"tiktok.com"* ]]; then
-            echo "Downloading video..."
             yt-dlp -f 'best' -o "downloads/%(title)s.%(ext)s" "$URL"
           else
-            echo "Scanning website for files: $URL"
-            # Enhanced Wget:
-            # -r: recursive
-            # -l2: depth of 2 (look one level deeper than the given URL)
-            # -nd: no directories (flatten all files in downloads/)
-            # -A "pattern": accept only files matching pattern
-            # -P downloads/: save to downloads/ directory
-            # --reject "pattern": reject specific files (e.g., images, css, js)
-            # --timeout=10: stop if a link takes too long
-            # --tries=3: retry 3 times if connection fails
-            wget -r -l2 -nd -A "deb,exe,zip,msi,pkg,dmg,apk,rpm,gz,7z,rar,pdf" \
-                 --reject "gif,jpg,jpeg,png,css,js,ico,svg,woff,woff2,ttf,eot" \
-                 --timeout=15 --tries=3 \
-                 -P downloads/ "$URL"
-
-            # Fallback to direct download if wget finds nothing useful or if the URL is a direct file
-            if [ -z "$(ls -A downloads/)" ]; then
-              echo "Wget found no suitable files, attempting direct download..."
-              curl -LJO "$URL" --output-dir downloads/ || echo "Direct download failed."
-            fi
+            wget -r -l1 -nd -A "deb,exe,zip,msi,pkg,dmg,apk,rpm,gz,7z,rar" -P downloads/ "$URL" || curl -LJO "$URL" --output-dir downloads/
           fi
 
       - name: Split and Generate UI
         id: process
         run: |
-          # Split files over 90MB
           find downloads/ -type f -size +90M | while read FILE; do
             split -b 90M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE."
             rm "$FILE"
@@ -74,7 +51,6 @@ jobs:
           HAS_SPLIT="false"
           MAIN_NAME=""
 
-          # Generate Table Rows
           for f in $(ls downloads/ | sort -V); do
             SIZE=$(du -sh "downloads/$f" | cut -f1)
             ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$f'))")
@@ -101,7 +77,6 @@ jobs:
           sed -i '/<!-- TABLE_START -->/,/<!-- TABLE_END -->/{ /<!-- TABLE_START -->/b; /<!-- TABLE_END -->/b; d; }' README.md
           echo -e "$TABLE" > table.tmp
           sed -i '/<!-- TABLE_START -->/r table.tmp' README.md
-          rm table.tmp
           
           # Generate Commands
           if [ "$SPLIT" = "true" ]; then
@@ -124,5 +99,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Updated files" || echo "No changes to commit"
+          git commit -m "Updated files" || exit 0
           git push --force
