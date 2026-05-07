@@ -6,6 +6,9 @@ Paste any link (Video, GitHub, or Website) into `GIMME-LINKS.txt` and commit!
 | File Name | Size | Link |
 | :--- | :--- | :--- |
 <!-- TABLE_START -->
+| code_1.118.1-1777474985_amd64.deb.1 | 90M | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.1) |
+| code_1.118.1-1777474985_amd64.deb.2 | 52M | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.2) |
+
 <!-- TABLE_END -->
 
 ---
@@ -15,10 +18,16 @@ If a file was split into parts (.1, .2), use these:
 
 #### 🐧 Linux / 🍎 Mac / 🤖 Android (Termux)
 <!-- LINUX_CMD_START -->
+```bash
+cat "downloads/code_1.118.1-1777474985_amd64.deb".* > "code_1.118.1-1777474985_amd64.deb"
+```
 <!-- LINUX_CMD_END -->
 
 #### 🪟 Windows (PowerShell)
 <!-- WIN_CMD_START -->
+```powershell
+Get-Content "downloads/code_1.118.1-1777474985_amd64.deb".* -ReadCount 10mb -Encoding Byte | Set-Content "code_1.118.1-1777474985_amd64.deb" -Encoding Byte
+```
 <!-- WIN_CMD_END -->
 
 ---
@@ -28,6 +37,9 @@ Paste any link into GIMME-LINKS.txt and I will fetch it!
 📦 Current Downloads
 File Name	Size	Link
 <!-- TABLE_START -->
+| code_1.118.1-1777474985_amd64.deb.1 | 90M | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.1) |
+| code_1.118.1-1777474985_amd64.deb.2 | 52M | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.2) |
+
 <!-- TABLE_END -->
 ---
 🛠️ Join Commands
@@ -35,17 +47,15 @@ File Name	Size	Link
 If a file was split into parts (.1, .2), use these:
 🐧 Linux / 🍎 Mac / 🤖 Android (Termux)
 <!-- LINUX_CMD_START -->
-code Bash
-
-# No parts to join!
-
+```bash
+cat "downloads/code_1.118.1-1777474985_amd64.deb".* > "code_1.118.1-1777474985_amd64.deb"
+```
 <!-- LINUX_CMD_END -->
 🪟 Windows (PowerShell)
 <!-- WIN_CMD_START -->
-code Powershell
-
-# No parts to join!
-
+```powershell
+Get-Content "downloads/code_1.118.1-1777474985_amd64.deb".* -ReadCount 10mb -Encoding Byte | Set-Content "code_1.118.1-1777474985_amd64.deb" -Encoding Byte
+```
 <!-- WIN_CMD_END -->
 
 ---
