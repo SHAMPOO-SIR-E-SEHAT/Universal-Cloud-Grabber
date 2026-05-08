@@ -16,10 +16,10 @@ jobs:
 
       - name: Setup Tools
         run: |
-          # Use -qq to minimize logs and prevent hangs
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg wget curl
-          pip install --upgrade yt-dlp
+          # Force update yt-dlp to the latest version to get the newest bot-bypass fixes
+          python3 -m pip install -U yt-dlp
 
       - name: Smart Download
         id: dl
@@ -37,37 +37,36 @@ jobs:
 
           echo "Processing: $URL"
 
-          # Logic for Github Repos
           if [[ $URL =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$ ]]; then
             gh release download --repo "$URL" --archive zip --output "downloads/repo-source.zip"
           
-          # Logic for Video Sites (Added --no-playlist and --buffer-size)
-          elif [[ $URL == *"youtube.com"* ]] || [[ $URL == *"youtu.be"* ]] || [[ $URL == *"twitter.com"* ]] || [[ $URL == *"tiktok.com"* ]]; then
-            yt-dlp -f 'best' --no-playlist --no-warnings -o "downloads/%(title)s.%(ext)s" "$URL"
+          elif [[ $URL == *"youtube.com"* ]] || [[ $URL == *"youtu.be"* ]] || [[ $URL == *"twitter.com"* ]] || [[ $URL == *"tiktok.com"* ]] || [[ $URL == *"instagram.com"* ]]; then
+            # The flags below are the current best way to bypass the "Sign in to confirm you're not a bot" error
+            yt-dlp -f 'best' \
+              --no-playlist \
+              --extractor-args "youtube:player_client=android,web_embedded" \
+              --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+              -o "downloads/%(title)s.%(ext)s" "$URL"
           
-          # Logic for Direct Links
           else
-            # Try wget first, if it fails, try curl
             wget -q --show-progress -N -P downloads/ "$URL" || curl -L -O --output-dir downloads/ "$URL"
           fi
 
       - name: Split and Generate UI
         id: process
         run: |
-          # Split files larger than 90MB (GitHub limit is 100MB)
+          # Split files larger than 90MB
           find downloads/ -type f -size +90M | while read FILE; do
             split -b 90M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE."
             rm "$FILE"
           done
           
-          TABLE_DATA="| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
+          TABLE_DATA=""
           HAS_SPLIT="false"
           MAIN_NAME=""
 
-          # Generate the table rows
           for f in $(ls downloads/ | sort -V); do
             SIZE=$(du -sh "downloads/$f" | cut -f1)
-            # URL Encoding for the filename
             ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$f'''))")
             RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/$ENC"
             TABLE_DATA="${TABLE_DATA}| $f | $SIZE | [Download]($RAW_URL) |\n"
@@ -78,7 +77,6 @@ jobs:
             fi
           done
 
-          # Use a temp file for the table to avoid bash variable escaping issues
           echo -e "$TABLE_DATA" > table_content.tmp
           echo "has_split=$HAS_SPLIT" >> $GITHUB_OUTPUT
           echo "main_name=$MAIN_NAME" >> $GITHUB_OUTPUT
@@ -88,7 +86,6 @@ jobs:
           SPLIT="${{ steps.process.outputs.has_split }}"
           FNAME="${{ steps.process.outputs.main_name }}"
 
-          # Create the Join Commands
           if [ "$SPLIT" = "true" ]; then
              L_CMD="cat \"downloads/$FNAME\".* > \"$FNAME\""
              W_CMD="Get-Content \"downloads/$FNAME\".* -ReadCount 10mb -Encoding Byte | Set-Content \"$FNAME\" -Encoding Byte"
@@ -97,30 +94,28 @@ jobs:
              W_CMD="# No parts to join!"
           fi
 
-          # Robust README update using Python (sed is too risky for this)
+          # Use Python to safely inject the table into the README markers
           python3 - <<EOF
-          import os
+          import re
+          
           with open('README.md', 'r') as f:
               content = f.read()
 
-          with open('table_content.tmp', 'r') as f:
-              table = f.read()
+          try:
+              with open('table_content.tmp', 'r') as f:
+                  table = f.read()
+          except:
+              table = "| No files | - | - |"
 
-          # Replace Table
-          import re
-          table_pattern = r"<!-- TABLE_START -->.*?<!-- TABLE_END -->"
-          table_new = f"<!-- TABLE_START -->\n{table}\n<!-- TABLE_END -->"
-          content = re.sub(table_pattern, table_new, content, flags=re.DOTALL)
+          # Define replacement patterns
+          patterns = {
+              r"<!-- TABLE_START -->.*?<!-- TABLE_END -->": f"<!-- TABLE_START -->\n{table}\n<!-- TABLE_END -->",
+              r"<!-- LINUX_CMD_START -->.*?<!-- LINUX_CMD_END -->": f"<!-- LINUX_CMD_START -->\n\`\`\`bash\n{L_CMD}\n\`\`\`\n<!-- LINUX_CMD_END -->",
+              r"<!-- WIN_CMD_START -->.*?<!-- WIN_CMD_END -->": f"<!-- WIN_CMD_START -->\n\`\`\`powershell\n{W_CMD}\n\`\`\`\n<!-- WIN_CMD_END -->"
+          }
 
-          # Replace Linux Cmd
-          l_pattern = r"<!-- LINUX_CMD_START -->.*?<!-- LINUX_CMD_END -->"
-          l_new = f"<!-- LINUX_CMD_START -->\n\`\`\`bash\n{L_CMD}\n\`\`\`\n<!-- LINUX_CMD_END -->"
-          content = re.sub(l_pattern, l_new, content, flags=re.DOTALL)
-
-          # Replace Windows Cmd
-          w_pattern = r"<!-- WIN_CMD_START -->.*?<!-- WIN_CMD_END -->"
-          w_new = f"<!-- WIN_CMD_START -->\n\`\`\`powershell\n{W_CMD}\n\`\`\`\n<!-- WIN_CMD_END -->"
-          content = re.sub(w_pattern, w_new, content, flags=re.DOTALL)
+          for pattern, replacement in patterns.items():
+              content = re.sub(pattern, replacement, content, flags=re.DOTALL)
 
           with open('README.md', 'w') as f:
               f.write(content)
@@ -131,5 +126,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Updated downloads and README" || exit 0
+          git commit -m "Automated download and README update" || exit 0
           git push --force
