@@ -92,8 +92,10 @@ jobs:
                   for f in files:
                       size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
                       enc_name = urllib.parse.quote(f)
-                      # Blob links work better in filtered regions
-                      raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
+                      
+                      # NEW: Generated link using raw.githubusercontent.com
+                      raw_url = f"https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/{enc_name}"
+                      
                       table += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
                       if ".part" in f:
                           split_groups.add(f.split('.part')[0])
@@ -121,6 +123,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          # [skip ci] prevents the action from triggering itself when it logs the link
           git commit -a -m "🚀 Sync: Link Logged & Files Updated [skip ci]" || exit 0
           git push --force
