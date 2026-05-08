@@ -3,9 +3,8 @@ on:
   workflow_dispatch:
     inputs:
       link:
-        description: 'Paste your download link here'
+        description: 'Paste Link or user/repo'
         required: true
-        default: ''
   push:
     paths:
       - 'GIMME-LINKS.txt'
@@ -27,91 +26,88 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Use input from button OR the text file
           URL="${{ github.event.inputs.link }}"
-          if [ -z "$URL" ]; then
-            URL=$(cat GIMME-LINKS.txt | xargs)
-          fi
+          if [ -z "$URL" ]; then URL=$(cat GIMME-LINKS.txt | xargs); fi
           
           mkdir -p downloads
-          # CRITICAL: This wipes the old file so the repo stays clean
+          # Clear old downloads entirely
           rm -rf downloads/*
           
-          if [ -z "$URL" ]; then echo "No link provided."; exit 0; fi
+          if [ -z "$URL" ]; then echo "No link."; exit 0; fi
 
-          # 1. GitHub Repo Logic
-          if [[ $URL == *"github.com"* ]]; then
-            CLEAN_REPO=$(echo "$URL" | sed -E 's|https?://github.com/([^/]+)/([^/]+).*|\1/\2|')
-            gh release download --repo "$CLEAN_REPO" --pattern "*" --dir downloads --clobber || echo "No assets."
+          # --- SMART GITHUB CLEANER ---
+          # 1. Remove trailing slashes
+          URL_CLEAN=$(echo "$URL" | sed 's|/*$||')
           
-          # 2. Direct Download (IDM Style)
+          # 2. Extract user/repo even from long URLs
+          if [[ "$URL_CLEAN" == *"github.com"* ]]; then
+             CLEAN_REPO=$(echo "$URL_CLEAN" | sed -E 's|.*github.com/([^/]+)/([^/ ]+).*|\1/\2|')
           else
-            cd downloads
-            curl -L -O -J "$URL" || wget -q "$URL"
-            cd ..
+             CLEAN_REPO="$URL_CLEAN"
           fi
 
-          # 3. SMART SPLITTING (The 100MB Bypass)
-          # Files over 95MB get cut into .part1, .part2, etc.
+          # 3. Check if it's a GitHub Repo or Direct Link
+          if [[ "$CLEAN_REPO" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]]; then
+             echo "📦 GitHub Repo detected: $CLEAN_REPO"
+             # Pattern "*" grabs ALL files from the release
+             gh release download --repo "$CLEAN_REPO" --pattern "*" --dir downloads --clobber || echo "❌ No release assets found."
+          else
+             echo "🔗 Direct Link detected: $URL"
+             cd downloads
+             curl -L -O -J "$URL" || wget -q "$URL"
+             cd ..
+          fi
+
+          # --- SMART SPLITTING ---
           find downloads/ -type f -size +95M | while read FILE; do
-            echo "Splitting $FILE..."
+            echo "✂️ Splitting: $FILE"
             split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
             rm "$FILE"
           done
 
-      - name: Update UI Table & Join Commands
+      - name: Update UI (Multi-File Support)
         run: |
           python3 - <<EOF
           import os, urllib.parse, re
 
           if not os.path.exists('downloads'): exit(0)
           files = sorted(os.listdir('downloads'))
-          if not files: exit(0)
-
+          
           table_rows = ""
-          has_split = False
-          base_name = ""
+          split_files = set() # To track which files need join commands
 
-          for f in files:
-              size_mb = os.path.getsize('downloads/'+f) / (1024*1024)
-              size_str = f"{size_mb:.1f} MB"
-              enc_name = urllib.parse.quote(f)
-              
-              # Using the "Blob" link to bypass filters
-              raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
-              
-              table_rows += f"| {f} | {size_str} | [⬇️ Download]({raw_url}) |\n"
-              
-              if ".part" in f:
-                  has_split = True
-                  # Detect the original name (e.g., video.mp4)
-                  base_name = f.split('.part')[0]
+          if files:
+              for f in files:
+                  fpath = os.path.join('downloads', f)
+                  if os.path.isdir(fpath): continue
+                  
+                  size = f"{os.path.getsize(fpath) / (1024*1024):.1f} MB"
+                  enc_name = urllib.parse.quote(f)
+                  raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
+                  
+                  table_rows += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
+                  
+                  if ".part" in f:
+                      split_files.add(f.split('.part')[0])
 
-          # Read README
+              ui_output = "### 📥 Current Download\n"
+              ui_output += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
+              ui_output += table_rows
+              
+              if split_files:
+                  ui_output += f"\n**🧩 How to Join (Run in PowerShell for Windows or Terminal for Linux):**\n"
+                  for base in sorted(split_files):
+                      ui_output += f"#### For {base}:\n"
+                      ui_output += f"- **Windows:** \`Get-Content downloads/{base}.part* -ReadCount 0 | Set-Content \"{base}\" -Encoding Byte\`\n"
+                      ui_output += f"- **Linux/Mac:** \`cat downloads/{base}.part* > \"{base}\"\`\n\n"
+          else:
+              ui_output = "### 📥 No Active Downloads\n*Run a workflow to see files here.*"
+
           with open('README.md', 'r') as f: content = f.read()
-          
-          # Build the dynamic UI section
-          ui_output = "### 📥 Current Download\n"
-          ui_output += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
-          ui_output += table_rows
-          
-          if has_split:
-              ui_output += f"\n**🧩 How to Join this file:**\n"
-              ui_output += f"If you downloaded multiple parts, use this command to merge them back into **{base_name}**:\n\n"
-              ui_output += f"- **Windows (PowerShell):**\n"
-              ui_output += f"\`\`\`powershell\nGet-Content downloads/{base_name}.part* -ReadCount 0 | Set-Content \"{base_name}\" -Encoding Byte\n\`\`\`\n"
-              ui_output += f"- **Linux / Mac / Termux:**\n"
-              ui_output += f"\`\`\`bash\ncat downloads/{base_name}.part* > \"{base_name}\"\n\`\`\`\n"
-
-          # Replace the content between markers
           pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
           replacement = f"<!-- DL_START -->\n{ui_output}\n<!-- DL_END -->"
+          content = re.sub(pattern, replacement, content, flags=re.DOTALL)
           
-          if "<!-- DL_START -->" not in content:
-              content += f"\n{replacement}"
-          else:
-              content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-
           with open('README.md', 'w') as f: f.write(content)
           EOF
 
@@ -120,5 +116,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "🚀 File Grabbed and Split" || exit 0
+          git commit -a -m "🚀 Sync Engine (Latest Only)" || exit 0
           git push --force
