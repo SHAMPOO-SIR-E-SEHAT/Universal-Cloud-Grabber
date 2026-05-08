@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       link:
-        description: 'Paste Link or user/repo'
+        description: 'Paste Direct Link or user/repo'
         required: true
   push:
     paths:
@@ -30,76 +30,68 @@ jobs:
           if [ -z "$URL" ]; then URL=$(cat GIMME-LINKS.txt | xargs); fi
           
           mkdir -p downloads
-          # Clear old downloads entirely
+          # 1. NUKE OLD FILES (Self-Cleaning)
           rm -rf downloads/*
           
-          if [ -z "$URL" ]; then echo "No link."; exit 0; fi
+          if [ -z "$URL" ]; then echo "No link provided."; exit 0; fi
 
-          # --- SMART GITHUB CLEANER ---
-          # 1. Remove trailing slashes
+          # 2. IDENTIFY TYPE
+          # Clean slashes
           URL_CLEAN=$(echo "$URL" | sed 's|/*$||')
           
-          # 2. Extract user/repo even from long URLs
-          if [[ "$URL_CLEAN" == *"github.com"* ]]; then
-             CLEAN_REPO=$(echo "$URL_CLEAN" | sed -E 's|.*github.com/([^/]+)/([^/ ]+).*|\1/\2|')
+          if [[ "$URL_CLEAN" == *"github.com"* ]] || [[ "$URL_CLEAN" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]]; then
+             echo "📦 TYPE: GitHub Repository"
+             # Extract user/repo
+             if [[ "$URL_CLEAN" == *"github.com"* ]]; then
+                TARGET=$(echo "$URL_CLEAN" | sed -E 's|.*github.com/([^/]+)/([^/ ]+).*|\1/\2|' | cut -d'/' -f1,2)
+             else
+                TARGET="$URL_CLEAN"
+             fi
+             echo "Fetching all assets from: $TARGET"
+             gh release download --repo "$TARGET" --pattern "*" --dir downloads --clobber || echo "No release assets found."
+          
           else
-             CLEAN_REPO="$URL_CLEAN"
-          fi
-
-          # 3. Check if it's a GitHub Repo or Direct Link
-          if [[ "$CLEAN_REPO" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]]; then
-             echo "📦 GitHub Repo detected: $CLEAN_REPO"
-             # Pattern "*" grabs ALL files from the release
-             gh release download --repo "$CLEAN_REPO" --pattern "*" --dir downloads --clobber || echo "❌ No release assets found."
-          else
-             echo "🔗 Direct Link detected: $URL"
+             echo "🔗 TYPE: Direct Download Link"
              cd downloads
-             curl -L -O -J "$URL" || wget -q "$URL"
+             # curl -L (follow redirects) -J (use server filename) -O (save to file)
+             curl -L -O -J "$URL_CLEAN" || wget -q --show-progress "$URL_CLEAN"
              cd ..
           fi
 
-          # --- SMART SPLITTING ---
+          # 3. SMART SPLITTING (100MB Bypass)
           find downloads/ -type f -size +95M | while read FILE; do
             echo "✂️ Splitting: $FILE"
             split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
             rm "$FILE"
           done
 
-      - name: Update UI (Multi-File Support)
+      - name: Update README UI
         run: |
           python3 - <<EOF
           import os, urllib.parse, re
 
           if not os.path.exists('downloads'): exit(0)
-          files = sorted(os.listdir('downloads'))
+          files = sorted([f for f in os.listdir('downloads') if os.path.isfile(os.path.join('downloads', f))])
           
-          table_rows = ""
-          split_files = set() # To track which files need join commands
+          ui_output = ""
+          split_groups = set()
 
           if files:
+              table = "### 📥 Current Downloads\n| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
               for f in files:
-                  fpath = os.path.join('downloads', f)
-                  if os.path.isdir(fpath): continue
-                  
-                  size = f"{os.path.getsize(fpath) / (1024*1024):.1f} MB"
+                  size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
                   enc_name = urllib.parse.quote(f)
                   raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
-                  
-                  table_rows += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
-                  
+                  table += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
                   if ".part" in f:
-                      split_files.add(f.split('.part')[0])
-
-              ui_output = "### 📥 Current Download\n"
-              ui_output += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
-              ui_output += table_rows
+                      split_groups.add(f.split('.part')[0])
               
-              if split_files:
-                  ui_output += f"\n**🧩 How to Join (Run in PowerShell for Windows or Terminal for Linux):**\n"
-                  for base in sorted(split_files):
-                      ui_output += f"#### For {base}:\n"
+              ui_output = table
+              if split_groups:
+                  ui_output += "\n**🧩 Join Commands (Run these to merge parts):**\n"
+                  for base in sorted(split_groups):
                       ui_output += f"- **Windows:** \`Get-Content downloads/{base}.part* -ReadCount 0 | Set-Content \"{base}\" -Encoding Byte\`\n"
-                      ui_output += f"- **Linux/Mac:** \`cat downloads/{base}.part* > \"{base}\"\`\n\n"
+                      ui_output += f"- **Linux/Mac:** \`cat downloads/{base}.part* > \"{base}\"\`\n"
           else:
               ui_output = "### 📥 No Active Downloads\n*Run a workflow to see files here.*"
 
@@ -107,7 +99,6 @@ jobs:
           pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
           replacement = f"<!-- DL_START -->\n{ui_output}\n<!-- DL_END -->"
           content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-          
           with open('README.md', 'w') as f: f.write(content)
           EOF
 
@@ -116,5 +107,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -a -m "🚀 Sync Engine (Latest Only)" || exit 0
+          git commit -a -m "🚀 Engine Sync" || exit 0
           git push --force
