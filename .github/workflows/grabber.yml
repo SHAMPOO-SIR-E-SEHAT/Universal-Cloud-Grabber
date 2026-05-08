@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       link:
-        description: 'Paste Direct Link or user/repo'
+        description: 'Paste Link / Repo OR type CLEAR'
         required: true
   push:
     paths:
@@ -27,74 +27,88 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           URL="${{ github.event.inputs.link }}"
+          # Use text file if button input is empty (for push triggers)
           if [ -z "$URL" ]; then URL=$(cat GIMME-LINKS.txt | xargs); fi
           
           mkdir -p downloads
-          # 1. NUKE OLD FILES (Self-Cleaning)
+          # Always wipe old downloads first
           rm -rf downloads/*
           
-          if [ -z "$URL" ]; then echo "No link provided."; exit 0; fi
+          # --- OPTION: CLEAR ---
+          if [ "$URL" == "CLEAR" ]; then
+             echo "" > GIMME-LINKS.txt
+             echo "status=cleared" >> $GITHUB_OUTPUT
+             exit 0
+          fi
 
-          # 2. IDENTIFY TYPE
-          # Clean slashes
+          # --- LOG LINK TO FILE ---
+          echo "$URL" > GIMME-LINKS.txt
+          echo "status=downloading" >> $GITHUB_OUTPUT
+
+          # --- SMART DOWNLOAD LOGIC ---
+          # 1. Clean trailing slashes
           URL_CLEAN=$(echo "$URL" | sed 's|/*$||')
           
+          # 2. Check if GitHub Repo or Direct Link
           if [[ "$URL_CLEAN" == *"github.com"* ]] || [[ "$URL_CLEAN" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]]; then
              echo "📦 TYPE: GitHub Repository"
-             # Extract user/repo
              if [[ "$URL_CLEAN" == *"github.com"* ]]; then
                 TARGET=$(echo "$URL_CLEAN" | sed -E 's|.*github.com/([^/]+)/([^/ ]+).*|\1/\2|' | cut -d'/' -f1,2)
              else
                 TARGET="$URL_CLEAN"
              fi
-             echo "Fetching all assets from: $TARGET"
-             gh release download --repo "$TARGET" --pattern "*" --dir downloads --clobber || echo "No release assets found."
-          
+             gh release download --repo "$TARGET" --pattern "*" --dir downloads --clobber || echo "No assets found."
           else
              echo "🔗 TYPE: Direct Download Link"
              cd downloads
-             # curl -L (follow redirects) -J (use server filename) -O (save to file)
-             curl -L -O -J "$URL_CLEAN" || wget -q --show-progress "$URL_CLEAN"
+             curl -L -O -J "$URL_CLEAN" || wget -q "$URL_CLEAN"
              cd ..
           fi
 
-          # 3. SMART SPLITTING (100MB Bypass)
+          # --- SMART SPLITTING (95MB Chunks to bypass 100MB limit) ---
           find downloads/ -type f -size +95M | while read FILE; do
             echo "✂️ Splitting: $FILE"
             split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
             rm "$FILE"
           done
 
-      - name: Update README UI
+      - name: Update UI (README)
         run: |
           python3 - <<EOF
           import os, urllib.parse, re
 
-          if not os.path.exists('downloads'): exit(0)
-          files = sorted([f for f in os.listdir('downloads') if os.path.isfile(os.path.join('downloads', f))])
-          
+          status = "${{ steps.engine.outputs.status }}"
           ui_output = ""
-          split_groups = set()
-
-          if files:
-              table = "### 📥 Current Downloads\n| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
-              for f in files:
-                  size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
-                  enc_name = urllib.parse.quote(f)
-                  raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
-                  table += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
-                  if ".part" in f:
-                      split_groups.add(f.split('.part')[0])
-              
-              ui_output = table
-              if split_groups:
-                  ui_output += "\n**🧩 Join Commands (Run these to merge parts):**\n"
-                  for base in sorted(split_groups):
-                      ui_output += f"- **Windows:** \`Get-Content downloads/{base}.part* -ReadCount 0 | Set-Content \"{base}\" -Encoding Byte\`\n"
-                      ui_output += f"- **Linux/Mac:** \`cat downloads/{base}.part* > \"{base}\"\`\n"
-          else:
+          
+          if status == "cleared":
               ui_output = "### 📥 No Active Downloads\n*Run a workflow to see files here.*"
+          else:
+              if not os.path.exists('downloads'): exit(0)
+              files = sorted([f for f in os.listdir('downloads') if os.path.isfile(os.path.join('downloads', f))])
+              
+              if files:
+                  split_groups = set()
+                  table = "### 📥 Current Downloads\n| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
+                  for f in files:
+                      size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
+                      enc_name = urllib.parse.quote(f)
+                      # Blob links work better in filtered regions
+                      raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
+                      table += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
+                      if ".part" in f:
+                          split_groups.add(f.split('.part')[0])
+                  
+                  ui_output = table
+                  if split_groups:
+                      ui_output += "\n**🧩 Join Commands:**\n"
+                      for base in sorted(split_groups):
+                          ui_output += f"#### For {base}:\n"
+                          ui_output += f"- **Windows (PowerShell):** \`Get-Content downloads/{base}.part* -ReadCount 0 | Set-Content \"{base}\" -Encoding Byte\`\n"
+                          ui_output += f"- **Linux/Mac/Termux:** \`cat downloads/{base}.part* > \"{base}\"\`\n\n"
+              else:
+                  ui_output = "### 📥 No Active Downloads\n*Run a workflow to see files here.*"
 
+          # Replace markers in README
           with open('README.md', 'r') as f: content = f.read()
           pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
           replacement = f"<!-- DL_START -->\n{ui_output}\n<!-- DL_END -->"
@@ -107,5 +121,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -a -m "🚀 Engine Sync" || exit 0
+          # [skip ci] prevents the action from triggering itself when it logs the link
+          git commit -a -m "🚀 Sync: Link Logged & Files Updated [skip ci]" || exit 0
           git push --force
