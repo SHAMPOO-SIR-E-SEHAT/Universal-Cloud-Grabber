@@ -34,6 +34,7 @@ jobs:
           fi
           
           mkdir -p downloads
+          # CRITICAL: This wipes the old file so the repo stays clean
           rm -rf downloads/*
           
           if [ -z "$URL" ]; then echo "No link provided."; exit 0; fi
@@ -43,20 +44,22 @@ jobs:
             CLEAN_REPO=$(echo "$URL" | sed -E 's|https?://github.com/([^/]+)/([^/]+).*|\1/\2|')
             gh release download --repo "$CLEAN_REPO" --pattern "*" --dir downloads --clobber || echo "No assets."
           
-          # 2. Direct Download
+          # 2. Direct Download (IDM Style)
           else
             cd downloads
             curl -L -O -J "$URL" || wget -q "$URL"
             cd ..
           fi
 
-          # 3. Smart Splitting (95MB chunks)
+          # 3. SMART SPLITTING (The 100MB Bypass)
+          # Files over 95MB get cut into .part1, .part2, etc.
           find downloads/ -type f -size +95M | while read FILE; do
+            echo "Splitting $FILE..."
             split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
             rm "$FILE"
           done
 
-      - name: Update UI
+      - name: Update UI Table & Join Commands
         run: |
           python3 - <<EOF
           import os, urllib.parse, re
@@ -70,27 +73,39 @@ jobs:
           base_name = ""
 
           for f in files:
-              size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
+              size_mb = os.path.getsize('downloads/'+f) / (1024*1024)
+              size_str = f"{size_mb:.1f} MB"
               enc_name = urllib.parse.quote(f)
-              # Link to the file directly in the repo to avoid github.io blocks
+              
+              # Using the "Blob" link to bypass filters
               raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
-              table_rows += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
+              
+              table_rows += f"| {f} | {size_str} | [⬇️ Download]({raw_url}) |\n"
+              
               if ".part" in f:
                   has_split = True
+                  # Detect the original name (e.g., video.mp4)
                   base_name = f.split('.part')[0]
 
+          # Read README
           with open('README.md', 'r') as f: content = f.read()
           
-          new_section = "### 📥 Active Downloads\n"
-          new_section += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
-          new_section += table_rows
+          # Build the dynamic UI section
+          ui_output = "### 📥 Current Download\n"
+          ui_output += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
+          ui_output += table_rows
           
           if has_split:
-              new_section += f"\n**🧩 Join Command (Windows):**\n"
-              new_section += f"\`Get-Content downloads/{base_name}.part* -ReadCount 0 | Set-Content \"{base_name}\" -Encoding Byte\`\n"
+              ui_output += f"\n**🧩 How to Join this file:**\n"
+              ui_output += f"If you downloaded multiple parts, use this command to merge them back into **{base_name}**:\n\n"
+              ui_output += f"- **Windows (PowerShell):**\n"
+              ui_output += f"\`\`\`powershell\nGet-Content downloads/{base_name}.part* -ReadCount 0 | Set-Content \"{base_name}\" -Encoding Byte\n\`\`\`\n"
+              ui_output += f"- **Linux / Mac / Termux:**\n"
+              ui_output += f"\`\`\`bash\ncat downloads/{base_name}.part* > \"{base_name}\"\n\`\`\`\n"
 
+          # Replace the content between markers
           pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
-          replacement = f"<!-- DL_START -->\n{new_section}\n<!-- DL_END -->"
+          replacement = f"<!-- DL_START -->\n{ui_output}\n<!-- DL_END -->"
           
           if "<!-- DL_START -->" not in content:
               content += f"\n{replacement}"
@@ -105,5 +120,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "🚀 File Grabbed" || exit 0
+          git commit -m "🚀 File Grabbed and Split" || exit 0
           git push --force
