@@ -8,7 +8,8 @@ Paste any link (Video, GitHub, or Website) into `GIMME-LINKS.txt` and commit!
 <!-- TABLE_START -->
 | File Name | Size | Link |
 | :--- | :--- | :--- |
-| No files found | - | - |
+| code_1.118.1-1777474985_amd64.deb.01 | 90.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.01) |
+| code_1.118.1-1777474985_amd64.deb.02 | 51.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.02) |
 
 <!-- TABLE_END -->
 
@@ -40,7 +41,8 @@ File Name	Size	Link
 <!-- TABLE_START -->
 | File Name | Size | Link |
 | :--- | :--- | :--- |
-| No files found | - | - |
+| code_1.118.1-1777474985_amd64.deb.01 | 90.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.01) |
+| code_1.118.1-1777474985_amd64.deb.02 | 51.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/code_1.118.1-1777474985_amd64.deb.02) |
 
 <!-- TABLE_END -->
 ---
