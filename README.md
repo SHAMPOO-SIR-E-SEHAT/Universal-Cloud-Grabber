@@ -6,7 +6,9 @@ Paste any link (Video, GitHub, or Website) into `GIMME-LINKS.txt` and commit!
 | File Name | Size | Link |
 | :--- | :--- | :--- |
 <!-- TABLE_START -->
-| Download | 0.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Download) |
+| File Name | Size | Link |
+| :--- | :--- | :--- |
+| No files found | - | - |
 
 <!-- TABLE_END -->
 
@@ -36,7 +38,9 @@ Paste any link into GIMME-LINKS.txt and I will fetch it!
 📦 Current Downloads
 File Name	Size	Link
 <!-- TABLE_START -->
-| Download | 0.0 MB | [Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Download) |
+| File Name | Size | Link |
+| :--- | :--- | :--- |
+| No files found | - | - |
 
 <!-- TABLE_END -->
 ---
