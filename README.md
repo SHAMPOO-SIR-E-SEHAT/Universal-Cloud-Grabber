@@ -1,15 +1,14 @@
 # 🌌 Universal-Cloud-Grabber
 
-### 📖 Instructions
-1. Put a direct download link or a GitHub link in `GIMME-LINKS.txt`.
-2. Wait for the green checkmark in Actions.
-3. Your download links will appear below.
+### 🚀 How to use (EASY WAY)
+1. **Fork** this repository to your own account.
+2. Go to the **Actions** tab at the top.
+3. Click the button **"I understand my workflows, go ahead and enable them"**.
+4. On the left side, click **"Universal-Cloud-Grabber"**.
+5. Click the **"Run workflow"** button on the right.
+6. Paste your link in the box and hit the green **"Run workflow"** button.
+7. Refresh this page after 1 minute.
 
 ---
 <!-- DL_START -->
-### 📥 Active Downloads
-| File Name | Size | Link |
-| :--- | :--- | :--- |
-| L3lJZrAqqUQ | 1.0 MB | [⬇️ Download](https://github.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/blob/main/downloads/L3lJZrAqqUQ?raw=true) |
-
 <!-- DL_END -->
