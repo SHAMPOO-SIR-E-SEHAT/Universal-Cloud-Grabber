@@ -1,4 +1,4 @@
-name: Universal-Cloud-Grabber
+name: Universal-Cloud-Grabber-v2
 on:
   push:
     paths:
@@ -6,32 +6,104 @@ on:
   workflow_dispatch:
 
 jobs:
-  engine:
+  grab:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Install Advanced Tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
-          python3 -m pip install -U yt-dlp requests beautifulsoup4
+      - name: Setup Tools
+        run: sudo apt-get update && sudo apt-get install -y wget curl
 
-      - name: Run Download Engine
+      - name: Core Engine
         id: engine
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/engine.py
+        run: |
+          URL=$(cat GIMME-LINKS.txt | xargs)
+          mkdir -p downloads
+          rm -rf downloads/*
+          
+          if [ -z "$URL" ]; then echo "Empty link."; exit 0; fi
 
-      - name: Commit and Push
+          # 1. GitHub Repo Cleaner
+          if [[ $URL == *"github.com"* ]]; then
+            CLEAN_REPO=$(echo "$URL" | sed -E 's|https?://github.com/([^/]+)/([^/]+).*|\1/\2|')
+            echo "Target Repo: $CLEAN_REPO"
+            gh release download --repo "$CLEAN_REPO" --pattern "*" --dir downloads --clobber || echo "No release assets found."
+          
+          # 2. Direct Download
+          else
+            echo "Target Link: $URL"
+            cd downloads
+            curl -L -O -J "$URL" || wget -q "$URL"
+            cd ..
+          fi
+
+          # 3. Smart Splitting (95MB chunks to be safe)
+          find downloads/ -type f -size +95M | while read FILE; do
+            echo "Splitting large file: $FILE"
+            split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
+            rm "$FILE"
+          done
+
+      - name: Update UI
+        id: ui
+        run: |
+          python3 - <<EOF
+          import os, urllib.parse, re
+
+          files = sorted(os.listdir('downloads'))
+          if not files:
+              exit(0)
+
+          table_rows = ""
+          has_split = False
+          base_name = ""
+
+          for f in files:
+              size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
+              enc_name = urllib.parse.quote(f)
+              # Link to the file in the repository
+              raw_url = f"https://github.com/${{ github.repository }}/blob/main/downloads/{enc_name}?raw=true"
+              table_rows += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
+              
+              if ".part" in f:
+                  has_split = True
+                  base_name = f.split('.part')[0]
+
+          with open('README.md', 'r') as f:
+              content = f.read()
+
+          # Build the section
+          new_section = "### 📥 Active Downloads\n"
+          new_section += "| File Name | Size | Link |\n| :--- | :--- | :--- |\n"
+          new_section += table_rows
+          
+          if has_split:
+              new_section += f"\n**🧩 How to join:**\n"
+              new_section += f"- **Linux/Mac:** \`cat downloads/{base_name}.part* > {base_name}\`\n"
+              new_section += f"- **Windows:** \`Get-Content downloads/{base_name}.part* -Raw | Set-Content {base_name}\`\n"
+
+          # Insert into markers
+          pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
+          replacement = f"<!-- DL_START -->\n{new_section}\n<!-- DL_END -->"
+          
+          if "<!-- DL_START -->" not in content:
+              content += f"\n{replacement}"
+          else:
+              content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+          with open('README.md', 'w') as f:
+              f.write(content)
+          EOF
+
+      - name: Push to Repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "🚀 Engine Update: Added new downloads" || exit 0
+          git commit -m "🚀 Added new files" || exit 0
           git push --force
