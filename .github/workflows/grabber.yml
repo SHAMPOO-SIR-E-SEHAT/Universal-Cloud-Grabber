@@ -6,164 +6,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  grab:
+  engine:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Environment
+      - name: Install Advanced Tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg wget curl
-          python3 -m pip install -U yt-dlp beautifulsoup4 requests
+          sudo apt-get install -y ffmpeg
+          python3 -m pip install -U yt-dlp requests beautifulsoup4
 
-      - name: Smart Processor (Download & Crawl)
-        id: process
+      - name: Run Download Engine
+        id: engine
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<EOF
-          import os, subprocess, re, requests, urllib.parse
-          from bs4 import BeautifulSoup
-
-          # 1. Setup
-          link_file = "GIMME-LINKS.txt"
-          download_dir = "downloads"
-          if not os.path.exists(download_dir): os.makedirs(download_dir)
-          for f in os.listdir(download_dir): os.remove(os.path.join(download_dir, f))
-
-          with open(link_file, 'r') as f:
-              url = f.read().strip()
-
-          if not url:
-              print("No URL found.")
-              exit(0)
-
-          def download_file(target_url):
-              print(f"Attempting to download: {target_url}")
-              # Detect if it's YouTube/Video
-              video_sites = ['youtube.com', 'youtu.be', 'twitter.com', 'tiktok.com', 'instagram.com']
-              if any(site in target_url for site in video_sites):
-                  # Current best bypass: ios client + specific user agent
-                  cmd = [
-                      'yt-dlp', '-f', 'best', '--no-playlist',
-                      '--extractor-args', 'youtube:player_client=ios',
-                      '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-                      '-o', f'{download_dir}/%(title)s.%(ext)s', target_url
-                  ]
-              elif re.match(r'^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$', target_url):
-                  cmd = ['gh', 'release', 'download', '--repo', target_url, '--archive', 'zip', '--output', f'{download_dir}/repo-source.zip']
-              else:
-                  cmd = ['wget', '-q', '--show-progress', '-N', '-P', download_dir, target_url]
-              
-              try:
-                  subprocess.run(cmd, check=True)
-              except Exception as e:
-                  print(f"Failed to download {target_url}: {e}")
-
-          # 2. Scraper Logic (The 'Third Option')
-          # If the URL doesn't look like a direct file or a video, crawl it
-          file_extensions = ('.exe', '.deb', '.msi', '.pkg', '.dmg', '.apk', '.zip', '.7z', '.tar.gz', '.rpm')
-          
-          if not any(site in url for site in ['youtube.com', 'youtu.be']) and not url.endswith(file_extensions):
-              print(f"URL detected as website. Crawling for links in: {url}")
-              try:
-                  headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0 Safari/537.36'}
-                  resp = requests.get(url, headers=headers, timeout=15)
-                  soup = BeautifulSoup(resp.text, 'html.parser')
-                  links_found = 0
-                  
-                  for a in soup.find_all('a', href=True):
-                      href = a['href']
-                      # Convert relative links to absolute
-                      full_link = urllib.parse.urljoin(url, href)
-                      if full_link.lower().endswith(file_extensions):
-                          print(f"Found file link: {full_link}")
-                          download_file(full_link)
-                          links_found += 1
-                          if links_found >= 5: break # Limit to 5 files to prevent disk overflow
-                  
-                  if links_found == 0:
-                      print("No direct file links found, trying to download the page itself.")
-                      download_file(url)
-              except Exception as e:
-                  print(f"Crawl failed: {e}")
-                  download_file(url)
-          else:
-              # Direct download for videos or known files
-              download_file(url)
-          EOF
-
-      - name: Split and Generate Table
-        id: ui
-        run: |
-          # Split files > 90MB
-          find downloads/ -type f -size +90M | while read FILE; do
-            split -b 90M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE."
-            rm "$FILE"
-          done
-          
-          # Generate Data
-          python3 - <<EOF
-          import os, urllib.parse, re
-
-          files = sorted(os.listdir('downloads'))
-          table_data = ""
-          has_split = "false"
-          main_name = ""
-
-          for f in files:
-              size_bytes = os.path.getsize(f"downloads/{f}")
-              size = f"{size_bytes / (1024*1024):.1f} MB"
-              enc_name = urllib.parse.quote(f)
-              raw_url = f"https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/{enc_name}"
-              table_data += f"| {f} | {size} | [Download]({raw_url}) |\n"
-              
-              if re.search(r'\.[1-9]$', f):
-                  has_split = "true"
-                  main_name = f.rsplit('.', 1)[0]
-
-          with open('table_content.tmp', 'w') as tf: tf.write(table_data)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as go:
-              go.write(f"has_split={has_split}\n")
-              go.write(f"main_name={main_name}\n")
-          EOF
-
-      - name: Update README
-        run: |
-          python3 - <<EOF
-          import re, os
-          
-          with open('README.md', 'r') as f: content = f.read()
-          try:
-              with open('table_content.tmp', 'r') as f: table = f.read()
-          except: table = "| No files found | - | - |"
-
-          split = "${{ steps.ui.outputs.has_split }}"
-          fname = "${{ steps.ui.outputs.main_name }}"
-          
-          l_cmd = f"cat \"downloads/{fname}\".* > \"{fname}\"" if split == "true" else "# No parts to join!"
-          w_cmd = f"Get-Content \"downloads/{fname}\".* -ReadCount 10mb -Encoding Byte | Set-Content \"{fname}\" -Encoding Byte" if split == "true" else "# No parts to join!"
-
-          patterns = {
-              r"<!-- TABLE_START -->.*?<!-- TABLE_END -->": f"<!-- TABLE_START -->\n{table}\n<!-- TABLE_END -->",
-              r"<!-- LINUX_CMD_START -->.*?<!-- LINUX_CMD_END -->": f"<!-- LINUX_CMD_START -->\n\`\`\`bash\n{l_cmd}\n\`\`\`\n<!-- LINUX_CMD_END -->",
-              r"<!-- WIN_CMD_START -->.*?<!-- WIN_CMD_END -->": f"<!-- WIN_CMD_START -->\n\`\`\`powershell\n{w_cmd}\n\`\`\`\n<!-- WIN_CMD_END -->"
-          }
-
-          for p, r in patterns.items():
-              content = re.sub(p, r, content, flags=re.DOTALL)
-
-          with open('README.md', 'w') as f: f.write(content)
-          EOF
+        run: python3 .github/scripts/engine.py
 
       - name: Commit and Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Updated downloads" || exit 0
+          git commit -m "🚀 Engine Update: Added new downloads" || exit 0
           git push --force
