@@ -1,1 +1,1 @@
-https://github.com/MHSanaei/3x-ui/releases/download/v3.0.1/x-ui-linux-amd64.tar.gz
+https://github.com/therealaleph/MasterHttpRelayVPN-RUST
