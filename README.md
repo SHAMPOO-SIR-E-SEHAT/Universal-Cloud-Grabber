@@ -10,11 +10,8 @@
 
 ---
 <!-- DL_START -->
-### 📥 Current Downloads
-| File Name | Size | Link |
-| :--- | :--- | :--- |
-| RooVeterinaryInc.roo-cline-3.53.0.vsix | 31.7 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/RooVeterinaryInc.roo-cline-3.53.0.vsix) |
-
+### 📥 No Active Downloads
+*Run a workflow to see files here.*
 <!-- DL_END -->
 ---
 
