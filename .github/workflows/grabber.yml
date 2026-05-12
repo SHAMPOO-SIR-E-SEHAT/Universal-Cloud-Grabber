@@ -27,37 +27,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           URL="${{ github.event.inputs.link }}"
-          # Use text file if button input is empty (for push triggers)
           if [ -z "$URL" ]; then URL=$(cat GIMME-LINKS.txt | xargs); fi
           
           mkdir -p downloads
-          # Always wipe old downloads first
           rm -rf downloads/*
           
-          # --- OPTION: CLEAR ---
           if [ "$URL" == "CLEAR" ]; then
              echo "" > GIMME-LINKS.txt
              echo "status=cleared" >> $GITHUB_OUTPUT
              exit 0
           fi
 
-          # --- LOG LINK TO FILE ---
           echo "$URL" > GIMME-LINKS.txt
           echo "status=downloading" >> $GITHUB_OUTPUT
-
-          # --- SMART DOWNLOAD LOGIC ---
-          # 1. Clean trailing slashes
           URL_CLEAN=$(echo "$URL" | sed 's|/*$||')
+
+          # --- LOGIC BRANCHING ---
           
-          # 2. Check if GitHub Repo or Direct Link
-          if [[ "$URL_CLEAN" == *"github.com"* ]] || [[ "$URL_CLEAN" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]]; then
-             echo "📦 TYPE: GitHub Repository"
+          # 1. Check if it's a SPECIFIC GitHub file link (contains /releases/download/)
+          if [[ "$URL_CLEAN" == *"github.com"* ]] && [[ "$URL_CLEAN" == *"/releases/download/"* ]]; then
+             echo "🔗 TYPE: Specific GitHub File"
+             cd downloads
+             curl -L -O -J "$URL_CLEAN" || wget -q "$URL_CLEAN"
+             cd ..
+
+          # 2. Check if it's a GitHub REPO (Grab All Assets)
+          elif [[ "$URL_CLEAN" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9._-]+$ ]] || [[ "$URL_CLEAN" == *"github.com"* ]]; then
+             echo "📦 TYPE: GitHub Repository (Full Release)"
              if [[ "$URL_CLEAN" == *"github.com"* ]]; then
                 TARGET=$(echo "$URL_CLEAN" | sed -E 's|.*github.com/([^/]+)/([^/ ]+).*|\1/\2|' | cut -d'/' -f1,2)
              else
                 TARGET="$URL_CLEAN"
              fi
-             gh release download --repo "$TARGET" --pattern "*" --dir downloads --clobber || echo "No assets found."
+             echo "Fetching all assets from: $TARGET"
+             gh release download --repo "$TARGET" --pattern "*" --dir downloads --clobber || echo "No release assets found."
+
+          # 3. Everything else is a Direct Link
           else
              echo "🔗 TYPE: Direct Download Link"
              cd downloads
@@ -65,7 +70,7 @@ jobs:
              cd ..
           fi
 
-          # --- SMART SPLITTING (95MB Chunks to bypass 100MB limit) ---
+          # --- SMART SPLITTING ---
           find downloads/ -type f -size +95M | while read FILE; do
             echo "✂️ Splitting: $FILE"
             split -b 95M -d --numeric-suffixes=1 --suffix-length=1 "$FILE" "$FILE.part"
@@ -92,10 +97,7 @@ jobs:
                   for f in files:
                       size = f"{os.path.getsize('downloads/'+f) / (1024*1024):.1f} MB"
                       enc_name = urllib.parse.quote(f)
-                      
-                      # NEW: Generated link using raw.githubusercontent.com
                       raw_url = f"https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/{enc_name}"
-                      
                       table += f"| {f} | {size} | [⬇️ Download]({raw_url}) |\n"
                       if ".part" in f:
                           split_groups.add(f.split('.part')[0])
@@ -110,7 +112,6 @@ jobs:
               else:
                   ui_output = "### 📥 No Active Downloads\n*Run a workflow to see files here.*"
 
-          # Replace markers in README
           with open('README.md', 'r') as f: content = f.read()
           pattern = r"<!-- DL_START -->.*?<!-- DL_END -->"
           replacement = f"<!-- DL_START -->\n{ui_output}\n<!-- DL_END -->"
