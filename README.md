@@ -13,18 +13,7 @@
 ### 📥 Current Downloads
 | File Name | Size | Link |
 | :--- | :--- | :--- |
-| Stellarium-26.1-qt5-x86_64.AppImage.part1 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part1) |
-| Stellarium-26.1-qt5-x86_64.AppImage.part2 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part2) |
-| Stellarium-26.1-qt5-x86_64.AppImage.part3 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part3) |
-| Stellarium-26.1-qt5-x86_64.AppImage.part4 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part4) |
-| Stellarium-26.1-qt5-x86_64.AppImage.part5 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part5) |
-| Stellarium-26.1-qt5-x86_64.AppImage.part6 | 46.3 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part6) |
-
-**🧩 Join Commands:**
-#### For Stellarium-26.1-qt5-x86_64.AppImage:
-- **Windows (PowerShell):** `Get-Content downloads/Stellarium-26.1-qt5-x86_64.AppImage.part* -ReadCount 0 | Set-Content "Stellarium-26.1-qt5-x86_64.AppImage" -Encoding Byte`
-- **Linux/Mac/Termux:** `cat downloads/Stellarium-26.1-qt5-x86_64.AppImage.part* > "Stellarium-26.1-qt5-x86_64.AppImage"`
-
+| x-ui-windows-amd64.zip | 75.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/x-ui-windows-amd64.zip) |
 
 <!-- DL_END -->
 ---

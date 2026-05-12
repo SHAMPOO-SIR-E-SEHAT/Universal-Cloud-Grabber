@@ -1,1 +1,1 @@
-https://github.com/Stellarium/stellarium/releases/download/v26.1/stellarium-26.1-qt5-x86_64.AppImage
+https://github.com/MHSanaei/3x-ui/releases/download/v3.0.1/x-ui-windows-amd64.zip
