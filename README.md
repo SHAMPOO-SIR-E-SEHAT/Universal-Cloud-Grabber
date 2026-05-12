@@ -13,22 +13,18 @@
 ### 📥 Current Downloads
 | File Name | Size | Link |
 | :--- | :--- | :--- |
-| mhrv-rs-android-arm64-v8a-v1.9.22.apk | 18.6 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-android-arm64-v8a-v1.9.22.apk) |
-| mhrv-rs-android-armeabi-v7a-v1.9.22.apk | 16.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-android-armeabi-v7a-v1.9.22.apk) |
-| mhrv-rs-android-universal-v1.9.22.apk | 41.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-android-universal-v1.9.22.apk) |
-| mhrv-rs-android-x86-v1.9.22.apk | 19.3 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-android-x86-v1.9.22.apk) |
-| mhrv-rs-android-x86_64-v1.9.22.apk | 19.6 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-android-x86_64-v1.9.22.apk) |
-| mhrv-rs-linux-amd64.tar.gz | 9.7 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-linux-amd64.tar.gz) |
-| mhrv-rs-linux-arm64.tar.gz | 2.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-linux-arm64.tar.gz) |
-| mhrv-rs-linux-musl-amd64.tar.gz | 2.3 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-linux-musl-amd64.tar.gz) |
-| mhrv-rs-linux-musl-arm64.tar.gz | 2.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-linux-musl-arm64.tar.gz) |
-| mhrv-rs-macos-amd64-app.zip | 5.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-macos-amd64-app.zip) |
-| mhrv-rs-macos-amd64.tar.gz | 7.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-macos-amd64.tar.gz) |
-| mhrv-rs-macos-arm64-app.zip | 4.6 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-macos-arm64-app.zip) |
-| mhrv-rs-macos-arm64.tar.gz | 6.5 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-macos-arm64.tar.gz) |
-| mhrv-rs-openwrt-mipsel-softfloat.tar.gz | 2.2 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-openwrt-mipsel-softfloat.tar.gz) |
-| mhrv-rs-raspbian-armhf.tar.gz | 2.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-raspbian-armhf.tar.gz) |
-| mhrv-rs-windows-amd64.zip | 7.5 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/mhrv-rs-windows-amd64.zip) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part1 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part1) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part2 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part2) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part3 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part3) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part4 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part4) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part5 | 95.0 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part5) |
+| Stellarium-26.1-qt5-x86_64.AppImage.part6 | 46.3 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/Stellarium-26.1-qt5-x86_64.AppImage.part6) |
+
+**🧩 Join Commands:**
+#### For Stellarium-26.1-qt5-x86_64.AppImage:
+- **Windows (PowerShell):** `Get-Content downloads/Stellarium-26.1-qt5-x86_64.AppImage.part* -ReadCount 0 | Set-Content "Stellarium-26.1-qt5-x86_64.AppImage" -Encoding Byte`
+- **Linux/Mac/Termux:** `cat downloads/Stellarium-26.1-qt5-x86_64.AppImage.part* > "Stellarium-26.1-qt5-x86_64.AppImage"`
+
 
 <!-- DL_END -->
 ---

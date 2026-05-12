@@ -1,1 +1,1 @@
-https://github.com/therealaleph/MasterHttpRelayVPN-RUST
+https://github.com/Stellarium/stellarium/releases/download/v26.1/stellarium-26.1-qt5-x86_64.AppImage
