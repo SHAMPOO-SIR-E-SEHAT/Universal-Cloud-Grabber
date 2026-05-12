@@ -10,11 +10,8 @@
 
 ---
 <!-- DL_START -->
-### 📥 Current Downloads
-| File Name | Size | Link |
-| :--- | :--- | :--- |
-| x-ui-windows-amd64.zip | 75.1 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/x-ui-windows-amd64.zip) |
-
+### 📥 No Active Downloads
+*Run a workflow to see files here.*
 <!-- DL_END -->
 ---
 
