@@ -10,8 +10,11 @@
 
 ---
 <!-- DL_START -->
-### 📥 No Active Downloads
-*Run a workflow to see files here.*
+### 📥 Current Downloads
+| File Name | Size | Link |
+| :--- | :--- | :--- |
+| obsidian_1.12.7_amd64.deb | 81.8 MB | [⬇️ Download](https://raw.githubusercontent.com/SHAMPOO-SIR-E-SEHAT/Universal-Cloud-Grabber/main/downloads/obsidian_1.12.7_amd64.deb) |
+
 <!-- DL_END -->
 ---
 
